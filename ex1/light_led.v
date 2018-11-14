@@ -4,12 +4,12 @@ module Light_led(switch, number, out);
 	output reg [3:0] out;
 	
 	always @(*)
-		if (switch[1] == 1'b0) // preset
-			if (switch[0] == 1'b0) // low
-				out = number[3:0];
+		if (switch[1] == 0) // preset
+			if (switch[0] == 0) // low
+				out <= number[3:0];
 			else // high
-				out = number[7:4];
+				out <= number[7:4];
 		else // solve
-			out = 4'b0;
+			out <= 4'h0;
 	
 endmodule

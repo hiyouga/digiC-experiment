@@ -10,12 +10,15 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led);
 	output [7:0] seg;
 	output [3:0] led;
 	
+	parameter solve_interval = 50000000; // a second interval
 	
 	wire [1:0] key_out;
-	reg [7:0] gray = 8'b0;
-	reg [7:0] bin;
-	reg [7:0] num_out;
+	reg [7:0] gray;
+	reg [7:0] num;
+	//reg [7:0] num_out;
+	reg auto_solve;
 	integer i;
+	integer cnt;
 	
 	always @(posedge sys_clk) begin
 		if (sys_rst != 0) begin
@@ -32,32 +35,47 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led);
 					else if (key_out[0] == 1'b1) // dec
 						gray[7:4] = gray[7:4] - 1;
 				end
-				num_out = gray;
+				auto_solve = 1'b0;
+				// display
+				num = gray;
 			end
 			else begin // solve
-				if (key_out[0] == 1'b1 && gray != 8'b0) begin
-					bin[7] = gray[7];
-					for (i = 6; i >= 0; i = i - 1)
-						bin[i] = bin[i+1]^gray[i];
-					bin = bin - 1;
-					gray = (bin >> 1) ^ bin;
+				// gray2binary
+				num[7] = gray[7];
+				for (i = 6; i >= 0; i = i - 1)
+					num[i] = num[i+1] ^ gray[i];
+				// press key
+				if ((key_out[0] == 1 && gray != 8'b0)) begin // decrease
+					num = num - 1;
+					gray = (num >> 1) ^ num;
 				end
-				if (switch[0] == 1'b0) begin
-					num_out = gray;
-				end
+				else if (key_out[1] == 1)  // auto on
+					auto_solve = ~auto_solve;
 				else begin
-					num_out = bin;
+					if (auto_solve == 1) begin // auto solve
+						cnt = cnt + 1;
+						if (cnt == solve_interval && gray != 8'b0) begin
+							cnt = 0;
+							num = num - 1;
+							gray = (num >> 1) ^ num;
+						end
+					end
 				end
+				// display
+				if (switch[0] == 0)
+					num = gray;
 			end
 		end
-		else
-			gray = 8'b0;
+		else begin
+			gray = 8'h00;
+			auto_solve = 1'b0;
+		end
 	end
 	
 	Display_num display_num (
 		.clk(sys_clk),
 		.rst(sys_rst),
-		.number(num_out),
+		.number(num),
 		.com(com),
 		.seg(seg)
 	);
