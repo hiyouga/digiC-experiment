@@ -12,8 +12,8 @@ module Key_debounce(clk, rst, key, key_pulse);
 
 	always @(posedge clk or negedge rst)
 		if (!rst) begin
-			key_rst <= 2'b11;
-			key_rst_pre <= 2'b11;
+			key_rst <= 2'b00;
+			key_rst_pre <= 2'b00;
 		end
 		else begin
 			key_rst <= key;
@@ -31,21 +31,21 @@ module Key_debounce(clk, rst, key, key_pulse);
 			cnt <= 18'h0;
 		else
 			cnt <= cnt + 1'h1;
-	end  
+	end
 
 	reg [1:0] key_sec_pre;
 	reg [1:0] key_sec;
 
 	always @(posedge clk or negedge rst) begin
 	if (!rst)
-		key_sec <= 2'b11;
-	else if (cnt==18'h3ffff)
+		key_sec <= 2'b00;
+	else if (cnt == 18'h3ffff)
 		key_sec <= key;
 	end
 	
 	always @(posedge clk or negedge rst) begin
 	if (!rst)
-		key_sec_pre <= 2'b11;
+		key_sec_pre <= 2'b00;
 	else
 		key_sec_pre <= key_sec;
 	end

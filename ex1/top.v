@@ -15,7 +15,6 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led);
 	wire [1:0] key_out;
 	reg [7:0] gray;
 	reg [7:0] num;
-	//reg [7:0] num_out;
 	reg auto_solve;
 	integer i;
 	integer cnt;
@@ -45,7 +44,7 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led);
 				for (i = 6; i >= 0; i = i - 1)
 					num[i] = num[i+1] ^ gray[i];
 				// press key
-				if ((key_out[0] == 1 && gray != 8'b0)) begin // decrease
+				if ((key_out[0] == 1 && gray != 8'h00)) begin // decrease
 					num = num - 1;
 					gray = (num >> 1) ^ num;
 				end
@@ -54,7 +53,7 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led);
 				else begin
 					if (auto_solve == 1) begin // auto solve
 						cnt = cnt + 1;
-						if (cnt == solve_interval && gray != 8'b0) begin
+						if (cnt == solve_interval && gray != 8'h00) begin
 							cnt = 0;
 							num = num - 1;
 							gray = (num >> 1) ^ num;
