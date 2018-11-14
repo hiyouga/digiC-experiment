@@ -8,7 +8,7 @@ module Display_num(clk, rst, number, com, seg);
 	parameter update_interval = 50000000 / 200 - 1; // 50Hz
 	
 	reg [3:0] dat;
-	reg sel;
+	reg sel = 1'b0;
 	integer cnt;
 	
 	always @(posedge clk or negedge rst) begin
@@ -25,10 +25,10 @@ module Display_num(clk, rst, number, com, seg);
 		end
 	end
 	
-	always @(sel) begin
+	always @(*) begin
 		case (sel)
-			1'b0: begin dat <= number[7:4]; com <= 2'b10; end
-			1'b1: begin dat <= number[3:0]; com <= 2'b01; end
+			1'b0: begin dat <= number[7:4]; com <= 2'b01; end
+			1'b1: begin dat <= number[3:0]; com <= 2'b10; end
 		endcase
 	end
 	

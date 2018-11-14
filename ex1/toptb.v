@@ -10,7 +10,6 @@ module Toptb;
 	wire [1:0] com;
 	wire [7:0] seg;
 	wire [3:0] led;
-	wire [7:0] gray; // test
 
 	// Instantiate the Unit Under Test (UUT)
 	Top uut (
@@ -20,8 +19,7 @@ module Toptb;
 		.key(key), 
 		.com(com), 
 		.seg(seg), 
-		.led(led),
-		.gray(gray) // test
+		.led(led)
 	);
 
 	initial begin
