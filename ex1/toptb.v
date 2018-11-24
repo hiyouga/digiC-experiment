@@ -31,7 +31,7 @@ module Toptb;
 
 		// Wait 100 ns for global reset to finish
 		#100;
-        
+		
 		// Add stimulus here
 		sys_rst = 0;
 		#10;
@@ -56,7 +56,7 @@ module Toptb;
 		#2000000;
 		key = 2'b00;
 	end
-	
+
 	always #1 sys_clk = ~sys_clk;
       
 endmodule
