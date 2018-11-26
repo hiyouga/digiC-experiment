@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module Top(sys_clk, sys_rst, switch, key, com, seg, led);
+module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	
 	input sys_clk;
 	input sys_rst;
@@ -9,12 +9,15 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led);
 	output [1:0] com;
 	output [7:0] seg;
 	output [3:0] led;
+	input Uart_Rx;
+	output Uart_Tx;
 	
 	wire [1:0] key_out;
 	wire [3:0] gate_F;
 	wire [1:0] gate_P;
 	wire [3:0] rtl_F;
 	wire [1:0] rtl_P;
+	wire [3:0] uart_data;
 	reg [3:0] num;
 	reg [3:0] display_F;
 	reg [3:0] display_P;
@@ -22,12 +25,15 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led);
 	assign led = num;
 	
 	always @(posedge sys_clk) begin
-		if (sys_rst != 0) begin
+		if (sys_rst) begin
 			if (switch[1] == 1'b0) begin // key_set
 				if (key_out[1] == 1'b1) // inc
 					num = num + 1;
 				else if (key_out[0] == 1'b1) // dec
 					num = num - 1;
+			end
+			else begin // uart_set
+				num = uart_data;
 			end
 			if (switch[0] == 1'b0) begin // Gate
 				display_F = gate_F;
@@ -71,6 +77,16 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led);
 		.rst(sys_rst),
 		.key(key),
 		.key_pulse(key_out)
+	);
+	
+	Uart_Top uart_top (
+		.Sys_CLK(sys_clk),
+		.Sys_RST(sys_rst),
+		.Signal_Tx(Uart_Tx),
+		.Signal_Rx(Uart_Rx),
+		.Num(uart_data),
+		.F(display_F),
+		.P(display_P)
 	);
 	
 endmodule

@@ -19,3 +19,5 @@ NET "switch[1]" LOC = P33;
 NET "sys_clk" LOC = P36;
 NET "sys_rst" LOC = P11;
 NET "sys_rst" PULLUP;
+NET "Uart_Tx" LOC = P10;
+NET "Uart_Rx" LOC = P9;
