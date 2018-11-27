@@ -2,7 +2,7 @@ module Display_num(clk, rst, number1, number2, com, seg);
 	input clk;
 	input rst;
 	input [3:0] number1;
-	input [3:0] number2;
+	input [1:0] number2;
 	output reg [1:0] com;
 	output reg [7:0] seg;
 
