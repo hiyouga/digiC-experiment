@@ -55,7 +55,7 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 			else begin // 8-bit
 				if (key_out[1] == 1'b1) // inc
 					num_8bit <= num_8bit + 1;
-				else if (key_out[0] == 1'b1) //dec
+				else if (key_out[0] == 1'b1) // dec
 					num_8bit <= num_8bit - 1;
 				if (switch[0] == 1'b0) begin // Set
 					display_1 <= num_8bit[7:4];

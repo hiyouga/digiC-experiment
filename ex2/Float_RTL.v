@@ -41,5 +41,4 @@ module Float_RTL(U, F, P);
 		.Y({F[0], F[1]})
 	);
 	
-	
 endmodule

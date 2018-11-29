@@ -27,7 +27,6 @@ int main()
 	int binary;//二进制数
 	int L;//二进制数长度
 	int power;//幂指数
-
 	int table[256][11];//储存8位二进制数对应表
 
 	for(int i = 0; i < 256; i++){
@@ -55,12 +54,10 @@ int main()
 			printf("%d",table[x][i]);
 		for(int i = 0; i < 8-length(transfer(x)); i++)
 			printf("%d",table[x][i]);
-        printf("; P <= 3\'b");
+		printf("; P <= 3\'b");
 		//输出幂指数
 		for(int i = 8; i < 11; i++)
 			printf("%d",table[x][i]);
-
 		printf("; end\n");
 	}
-
 }
