@@ -30,30 +30,18 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	
 	always @(posedge sys_clk or negedge sys_rst) begin
 		if (!sys_rst) begin
+			display_1 <= 4'b0;
+			display_2 <= 4'b0;
+			led <= 4'b0;
 			num <= 4'b0;
 			num_8bit <= 8'b0;
 		end
 		else begin
-			if (key_out[1] == 1'b1) begin // inc
-				num <= num + 1;
-				num_8bit <= num_8bit + 1;
-			end
-			else if (key_out[0] == 1'b1) begin // dec
-				num <= num - 1;
-				num_8bit <= num_8bit - 1;
-			end
-		end
-	end
-	
-	always @(posedge sys_clk or negedge sys_rst) begin
-		if (!sys_rst) begin
-			display_1 <= 4'b0;
-			display_2 <= 4'b0;
-			led <= 4'b0;
-		end
-		else begin
 			if (switch[1] == 1'b0) begin // 4-bit
-				led <= num;
+				if (key_out[1] == 1'b1) // inc
+					num <= num + 1;
+				else if (key_out[0] == 1'b1) // dec
+					num <= num - 1;
 				if (switch[0] == 1'b0) begin // Gate
 					display_1 <= gate_F;
 					display_2 <= gate_P;
@@ -62,8 +50,13 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 					display_1 <= rtl_F;
 					display_2 <= rtl_P;
 				end
+				led <= num;
 			end
 			else begin // 8-bit
+				if (key_out[1] == 1'b1) // inc
+					num_8bit <= num_8bit + 1;
+				else if (key_out[0] == 1'b1) //dec
+					num_8bit <= num_8bit - 1;
 				if (switch[0] == 1'b0) begin // Set
 					display_1 <= num_8bit[7:4];
 					display_2 <= num_8bit[3:0];
