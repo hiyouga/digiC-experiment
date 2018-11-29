@@ -19,53 +19,62 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	wire [1:0] rtl_P;
 	wire [7:0] F_8bit;
 	wire [2:0] P_8bit;
-	wire [7:0] F_8bit_table;
-	wire [2:0] P_8bit_table;
 	wire [7:0] uart_data;
+	wire [7:0] uart_F;
+	wire [2:0] uart_P;
 	reg [3:0] num;
 	reg [7:0] num_8bit;
-	reg [3:0] display_F;
-	reg [1:0] display_P;
-	reg [7:0] print_F;
-	reg [2:0] print_P;
+	reg [3:0] display_1;
+	reg [3:0] display_2;
+	reg [3:0] led;
 	
-	assign led = num;
-	
-	always @(posedge sys_clk) begin
-		if (sys_rst) begin
-			// key_set
-			if (key_out[1] == 1'b1) // inc
-				num = num + 1;
-			else if (key_out[0] == 1'b1) // dec
-				num = num - 1;
-			// UART
-			num_8bit = uart_data;
-			// Display
-			if (switch[1] == 1'b0) begin // Gate
-				display_F = gate_F;
-				display_P = gate_P;
-			end
-			else begin // RTL
-				display_F = rtl_F;
-				display_P = rtl_P;
-			end
-			// Print
-			if (switch[0] == 1'b0) begin // RTL
-				print_F = F_8bit;
-				print_P = P_8bit;
-			end
-			else begin // Table
-				print_F = F_8bit_table;
-				print_P = P_8bit_table;
-			end
+	always @(posedge sys_clk or negedge sys_rst) begin
+		if (!sys_rst) begin
+			num <= 4'b0;
+			num_8bit <= 8'b0;
 		end
 		else begin
-			num = 4'b0;
-			num_8bit = 8'b0;
-			display_F = 4'b0;
-			display_P = 2'b0;
-			print_F = 8'b0;
-			print_P = 3'b0;
+			if (key_out[1] == 1'b1) begin // inc
+				num <= num + 1;
+				num_8bit <= num_8bit + 1;
+			end
+			else if (key_out[0] == 1'b1) begin // dec
+				num <= num - 1;
+				num_8bit <= num_8bit - 1;
+			end
+		end
+	end
+	
+	always @(posedge sys_clk or negedge sys_rst) begin
+		if (!sys_rst) begin
+			display_1 <= 4'b0;
+			display_2 <= 4'b0;
+			led <= 4'b0;
+		end
+		else begin
+			if (switch[1] == 1'b0) begin // 4-bit
+				led <= num;
+				if (switch[0] == 1'b0) begin // Gate
+					display_1 <= gate_F;
+					display_2 <= gate_P;
+				end
+				else begin // RTL
+					display_1 <= rtl_F;
+					display_2 <= rtl_P;
+				end
+			end
+			else begin // 8-bit
+				if (switch[0] == 1'b0) begin // Set
+					display_1 <= num_8bit[7:4];
+					display_2 <= num_8bit[3:0];
+					led <= 4'b0;
+				end
+				else begin // Display
+					display_1 <= F_8bit[7:4];
+					display_2 <= F_8bit[3:0];
+					led <= P_8bit;
+				end
+			end
 		end
 	end
 	
@@ -81,7 +90,6 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 		.P(rtl_P)
 	);
 	
-
 	Float_8bit float_8bit (
 		.U(num_8bit),
 		.F(F_8bit),
@@ -89,16 +97,16 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	);
 	
 	Float_8bit_Table float_8bit_table (
-		.U(num_8bit),
-		.F(F_8bit_table),
-		.P(P_8bit_table)
+		.U(uart_data),
+		.F(uart_F),
+		.P(uart_P)
 	);
 	
 	Display_num display_num (
 		.clk(sys_clk),
 		.rst(sys_rst),
-		.number1(display_F),
-		.number2(display_P),
+		.number1(display_1),
+		.number2(display_2),
 		.com(com),
 		.seg(seg)
 	);
@@ -116,8 +124,8 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 		.Signal_Tx(Uart_Tx),
 		.Signal_Rx(Uart_Rx),
 		.Num(uart_data),
-		.F(print_F),
-		.P(print_P)
+		.F(uart_F),
+		.P(uart_P)
 	);
 	
 endmodule
