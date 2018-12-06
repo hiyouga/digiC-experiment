@@ -15,17 +15,37 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	wire [1:0] light;
 	wire [2:0] state;
 	wire [7:0] number;
+	wire [4:0] index;
+	wire [7:0] oplist;
+	wire [3:0] line;
 	reg mode;
+	reg [3:0] send_index;
+	reg [4:0] length;
+	reg [7:0] records[0:15];
+	reg [7:0] data;
+	integer i;
 	
 	always @(posedge sys_clk or negedge sys_rst) begin
 		if (!sys_rst) begin
 			mode <= 1'b0;
+			for (i=0; i<16; i=i+1)
+				records[i] <= 8'b0;
+			length <= 5'b0;
 		end
 		else begin
-			if (switch[1] == 1'b0)
+			if (switch[1] == 1'b0) // MODE_RUN
 				mode <= 1'b0;
-			else
+			else // MODE_DEMO
 				mode <= 1'b1;
+			if (switch[0] == 1'b1) begin // Record
+				if (length != index && length < 16) begin
+					length <= index;
+					records[length] <= oplist;
+				end
+			end
+			else begin
+				length <= 1'b0;
+			end
 		end
 	end
 	
@@ -56,15 +76,28 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	);
 	
 	Light_led light_led (
-		.light(light),
-		.led(led)
+		.Light(light),
+		.Led(led)
+	);
+	
+	Recorder recorder (
+		.Sys_CLK(sys_clk),
+		.Sys_RST(sys_rst),
+		.Key_In(key_out[0]),
+		.Length(length),
+		.Light(light),
+		.Index(index),
+		.opList(oplist)
 	);
 	
 	Uart_Top uart_top (
 		.Sys_CLK(sys_clk),
 		.Sys_RST(sys_rst),
 		.Signal_Tx(Uart_Tx),
-		.Signal_Rx(Uart_Rx)
+		.Signal_Rx(Uart_Rx),
+		.Key_In(key_out[1]),
+		.Length(length),
+		.Data(data)
 	);
 	
 endmodule

@@ -69,7 +69,7 @@ module Display_num(clk, rst, number, state, com, seg);
 		endcase
 	end
 	
-	parameter dp_interval = 5000000;
+	parameter dp_interval = 5000000; // 100ms
 	integer dp_cnt;
 	reg dp_state;
 	
