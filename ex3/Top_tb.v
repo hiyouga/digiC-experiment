@@ -70,6 +70,12 @@ module Top_tb;
 		key = 2'b01;
 		#2000000;
 		key = 2'b00;
+		#100;
+		switch = 2'b00;
+		#100;
+		key = 2'b10;
+		#2000000;
+		key = 2'b00;
 	end
 	
 	always #1 sys_clk = ~sys_clk;

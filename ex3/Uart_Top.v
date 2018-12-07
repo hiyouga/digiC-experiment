@@ -1,100 +1,89 @@
-module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx);
-
-input Sys_CLK;
-input Sys_RST;
-input Signal_Rx;
-output Signal_Tx;
-
-wire Uart_CLK; // Ê±ÖÓ·ÖÆµ
-reg [7:0] Data_Tx; // ´«ËÍÊı¾İ
-wire [7:0] Data_Rx; // ½ÓÊÕÊı¾İ
-reg Wrsig; // Ğ´Ê¹ÄÜ
-wire Rdsig; // ¶ÁÊ¹ÄÜ
-wire Rx_DataError_Flag; // Êı¾İÒì³£
-wire Rx_FrameError_Flag; // Ö¡Òì³£
-reg Error_Flag; // Òì³£ĞÅºÅ
-reg [2:0] State; // ×´Ì¬¼Ä´æÆ÷
-reg [7:0] cnt; // ·¢ËÍ²ÉÑùĞÅºÅ
-reg [7:0] Data_Reg[0:7]; // Êı¾İ¼Ä´æÆ÷
-reg [3:0] Data_Cnt; // Êı¾İÏÂ±ê
-wire [7:0] Print_Reg[0:10]; // Êä³ö×Ö·û´®
-reg [3:0] Print_Cnt; // Êä³öÏÂ±ê
-reg [7:0] Error_Char[0:3]; // Òì³£×Ö·û´®
-reg [3:0] Char_Cnt; // ×Ö·û´®ÏÂ±ê
-wire Idle; // Tx¿ÕÏĞĞÅºÅ
-
-// ×´Ì¬»ú±àÂë
-parameter Wait_Rdsig = 3'b000;
-parameter Check_Data = 3'b001;
-parameter Save_Data = 3'b010;
-parameter Trans_Data = 3'b011;
-parameter State_Delay = 3'b100;
-
-assign Print_Reg[1] = 8'd46;	// .
-assign Print_Reg[9] = 8'd69;	// E
-
-// for-loop
-integer i;
-genvar j;
-
-always @(posedge Uart_CLK or negedge Sys_RST) begin
-	if (!Sys_RST) begin
-		Wrsig = 1'b0;
-		cnt = 1'b0;
-		State = 3'b0;
-		Char_Cnt = 4'b0;
-		Data_Cnt = 4'b0;
-		Print_Cnt = 4'b0;
-		Data_Tx = 8'b0;
-		cnt = 8'b0;
-		for (i=0; i<8; i=i+1)
-			Data_Reg[i] = 8'd48;
-		Error_Char[0] = 8'd69;	// E
-		Error_Char[1] = 8'd114;	// r
-		Error_Char[2] = 8'd114;	// r
-		Error_Char[3] = 8'd33;	// !
-	end
-	else begin
-		case(State)
-			Wait_Rdsig:	begin // µÈ´ı½ÓÊÕĞÅºÅ
-								if (!Rdsig)
-									State = Wait_Rdsig;
-								else
-									State = Check_Data;
-							end
-			Check_Data:	begin // ¼ì²éÊÇ·ñÓĞ´íÎó 
-								if (Rdsig)
-									State = Check_Data;
-								else begin
-									Error_Flag = Rx_DataError_Flag || Rx_FrameError_Flag;
-									State = Save_Data;
-								end
-							end
-			Save_Data:	begin // ´¢´æÊı¾İ
-								if (!Error_Flag) begin
-									if (Data_Cnt == 4'd8) begin // ½ÓÊÕÍê±Ï
-										Data_Cnt = 4'd0;
+ï»¿module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Tx_Sig, Tx_Idle);
+	input Sys_CLK;
+	input Sys_RST;
+	input Signal_Rx;
+	output Signal_Tx;
+	input [7:0] Data;
+	input Tx_Sig;
+	output reg Tx_Idle;
+	
+	///////// For Uart Essential begin
+	wire Uart_CLK; // æ—¶é’Ÿåˆ†é¢‘
+	reg [7:0] Data_Tx; // ä¼ é€æ•°æ®
+	wire [7:0] Data_Rx; // æ¥æ”¶æ•°æ®
+	reg Wrsig; // å†™ä½¿èƒ½
+	wire Rdsig; // è¯»ä½¿èƒ½
+	wire Idle; // Txç©ºé—²ä¿¡å·
+	wire Rx_DataError_Flag; // æ•°æ®å¼‚å¸¸
+	wire Rx_FrameError_Flag; // å¸§å¼‚å¸¸
+	reg Error_Flag; // å¼‚å¸¸ä¿¡å·
+	reg [2:0] State; // çŠ¶æ€å¯„å­˜å™¨
+	reg [7:0] cnt; // å‘é€é‡‡æ ·ä¿¡å·
+	///////// End
+	reg [7:0] Print[0:8]; // è¾“å‡ºå­—ç¬¦ä¸² t.tts:on/of\r
+	reg [3:0] Data_Cnt; // æ•°æ®ä¸‹æ ‡
+	reg [3:0] Print_Cnt;
+	
+	// çŠ¶æ€æœºç¼–ç 
+	parameter Wait_Rdsig = 3'b000;
+	parameter Check_Data = 3'b001;
+	parameter Save_Data = 3'b010;
+	parameter Trans_Data = 3'b011;
+	parameter State_Delay = 3'b100;
+	
+	always @(posedge Uart_CLK or negedge Sys_RST) begin
+		if (!Sys_RST) begin
+			Wrsig = 1'b0;
+			State = 3'b0;
+			cnt = 8'b0;
+			Tx_Idle = 1'b1;
+			Data_Tx = 8'b0;
+			Print_Cnt = 4'b0;
+		end
+		else begin
+			case(State)
+				Wait_Rdsig:	begin // ç­‰å¾…æ¥æ”¶ä¿¡å·
+									if (Tx_Sig) begin
+										Tx_Idle = 1'b0;
 										State = Trans_Data;
 									end
 									else begin
-										State = Wait_Rdsig;
-										Data_Reg[Data_Cnt] = Data_Rx;
-										Data_Cnt = Data_Cnt + 1;
+										Tx_Idle = 1'b1;
+										if (!Rdsig)
+											State = Wait_Rdsig;
+										else
+											State = Check_Data;
 									end
 								end
-								else
-									State = Trans_Data;
-							end
-			Trans_Data:	begin // ´«ÊäÊı¾İ
-								if (!Error_Flag) begin
-									if (Print_Cnt == 4'd11) begin // Êä³öÍê±Ï
+				Check_Data:	begin // æ£€æŸ¥æ˜¯å¦æœ‰é”™è¯¯ 
+									if (Rdsig)
+										State = Check_Data;
+									else begin
+										Error_Flag = Rx_DataError_Flag || Rx_FrameError_Flag;
+										State = Save_Data;
+									end
+								end
+				Save_Data:	begin // å‚¨å­˜æ•°æ®
+									if (!Error_Flag) begin
+										if (Data_Cnt == 4'd8) begin // æ¥æ”¶å®Œæ¯•
+											Data_Cnt = 4'd0;
+											State = Trans_Data;
+										end
+										else begin
+											State = Wait_Rdsig;
+										end
+									end
+									else
+										State = Trans_Data;
+								end
+				Trans_Data:	begin // ä¼ è¾“æ•°æ®
+									if (Print_Cnt == 4'd9) begin // è¾“å‡ºå®Œæ¯•
 										Print_Cnt = 4'd0;
 										State = State_Delay;
 									end
 									else begin
-										State = Trans_Data;
-										if (cnt == 254) begin // ½øÒ»²½·ÖÆµ
-											Data_Tx = Print_Reg[Print_Cnt];
+										if (cnt == 254) begin // è¿›ä¸€æ­¥åˆ†é¢‘
+											Data_Tx = Print[Print_Cnt];
 											Wrsig = 1'b1;
 											cnt = 8'd0;
 											Print_Cnt = Print_Cnt + 1;
@@ -105,54 +94,172 @@ always @(posedge Uart_CLK or negedge Sys_RST) begin
 										end
 									end
 								end
-								else begin
-									if (Char_Cnt == 4'd4) begin // Êä³öÍê±Ï
-										Char_Cnt = 4'd0;
-										State = State_Delay;
+				State_Delay:begin // ç­‰å¾…å»¶è¿Ÿ
+									if (cnt == 254) begin // è¾“å‡ºå›è½¦
+										cnt = 8'd0;
+										State = Wait_Rdsig;
 									end
 									else begin
-										State = Trans_Data;
-										if (cnt == 254) begin // ½øÒ»²½·ÖÆµ
-											Data_Tx = Error_Char[Char_Cnt];
-											Wrsig = 1'b1;
-											cnt = 8'd0;
-											Char_Cnt = Char_Cnt + 1;
-										end
-										else begin
-											Wrsig = 1'b0;
-											cnt = cnt + 8'd1;
-										end
+										Wrsig = 1'b0;
+										cnt = cnt + 8'd1;
 									end
 								end
-							end
-			State_Delay:begin // µÈ´ıÑÓ³Ù
-								if (cnt == 254) begin // Êä³ö»Ø³µ
-									Data_Tx = 8'd13;
-									Wrsig = 1'b1;
-									cnt = 8'd0;
-									State = Wait_Rdsig;
-								end
-								else begin
+				default:		begin // å¤ä½
 									Wrsig = 1'b0;
-									cnt = cnt + 8'd1;
+									cnt = 8'd0;
+									State = 2'b0;
 								end
-							end
-			default:		begin // ¸´Î»
-								Wrsig = 1'b0;
-								cnt = 8'd0;
-								State = 2'b0;
-								Char_Cnt = 4'b0;
-								Data_Cnt = 4'b0;
-								Print_Cnt = 4'b0;
-								for (i=0; i<8; i=i+1)
-									Data_Reg[i] = 8'd48;
-							end
+			endcase
+		end
+	end
+	
+	always @(Data) begin
+		Print[1] <= 8'd46;
+		Print[4] <= 8'd115;
+		Print[5] <= 8'd58;
+		if (Data[7]) begin
+			Print[6] <= 8'd79;
+			Print[7] <= 8'd110;
+		end
+		else begin
+			Print[6] <= 8'd79;
+			Print[7] <= 8'd102;
+		end
+		Print[8] <= 8'd13;
+		case (Data[6:0])
+			7'b0: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd48; end // 0
+			7'b1: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd49; end // 1
+			7'b10: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd50; end // 2
+			7'b11: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd51; end // 3
+			7'b100: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd52; end // 4
+			7'b101: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd53; end // 5
+			7'b110: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd54; end // 6
+			7'b111: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd55; end // 7
+			7'b1000: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd56; end // 8
+			7'b1001: begin Print[0] <= 8'd48; Print[2] <= 8'd48; Print[3] <= 8'd57; end // 9
+			7'b1010: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd48; end // 10
+			7'b1011: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd49; end // 11
+			7'b1100: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd50; end // 12
+			7'b1101: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd51; end // 13
+			7'b1110: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd52; end // 14
+			7'b1111: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd53; end // 15
+			7'b10000: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd54; end // 16
+			7'b10001: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd55; end // 17
+			7'b10010: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd56; end // 18
+			7'b10011: begin Print[0] <= 8'd48; Print[2] <= 8'd49; Print[3] <= 8'd57; end // 19
+			7'b10100: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd48; end // 20
+			7'b10101: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd49; end // 21
+			7'b10110: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd50; end // 22
+			7'b10111: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd51; end // 23
+			7'b11000: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd52; end // 24
+			7'b11001: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd53; end // 25
+			7'b11010: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd54; end // 26
+			7'b11011: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd55; end // 27
+			7'b11100: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd56; end // 28
+			7'b11101: begin Print[0] <= 8'd48; Print[2] <= 8'd50; Print[3] <= 8'd57; end // 29
+			7'b11110: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd48; end // 30
+			7'b11111: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd49; end // 31
+			7'b100000: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd50; end // 32
+			7'b100001: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd51; end // 33
+			7'b100010: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd52; end // 34
+			7'b100011: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd53; end // 35
+			7'b100100: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd54; end // 36
+			7'b100101: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd55; end // 37
+			7'b100110: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd56; end // 38
+			7'b100111: begin Print[0] <= 8'd48; Print[2] <= 8'd51; Print[3] <= 8'd57; end // 39
+			7'b101000: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd48; end // 40
+			7'b101001: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd49; end // 41
+			7'b101010: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd50; end // 42
+			7'b101011: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd51; end // 43
+			7'b101100: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd52; end // 44
+			7'b101101: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd53; end // 45
+			7'b101110: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd54; end // 46
+			7'b101111: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd55; end // 47
+			7'b110000: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd56; end // 48
+			7'b110001: begin Print[0] <= 8'd48; Print[2] <= 8'd52; Print[3] <= 8'd57; end // 49
+			7'b110010: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd48; end // 50
+			7'b110011: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd49; end // 51
+			7'b110100: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd50; end // 52
+			7'b110101: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd51; end // 53
+			7'b110110: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd52; end // 54
+			7'b110111: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd53; end // 55
+			7'b111000: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd54; end // 56
+			7'b111001: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd55; end // 57
+			7'b111010: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd56; end // 58
+			7'b111011: begin Print[0] <= 8'd48; Print[2] <= 8'd53; Print[3] <= 8'd57; end // 59
+			7'b111100: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd48; end // 60
+			7'b111101: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd49; end // 61
+			7'b111110: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd50; end // 62
+			7'b111111: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd51; end // 63
+			7'b1000000: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd52; end // 64
+			7'b1000001: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd53; end // 65
+			7'b1000010: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd54; end // 66
+			7'b1000011: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd55; end // 67
+			7'b1000100: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd56; end // 68
+			7'b1000101: begin Print[0] <= 8'd48; Print[2] <= 8'd54; Print[3] <= 8'd57; end // 69
+			7'b1000110: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd48; end // 70
+			7'b1000111: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd49; end // 71
+			7'b1001000: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd50; end // 72
+			7'b1001001: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd51; end // 73
+			7'b1001010: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd52; end // 74
+			7'b1001011: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd53; end // 75
+			7'b1001100: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd54; end // 76
+			7'b1001101: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd55; end // 77
+			7'b1001110: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd56; end // 78
+			7'b1001111: begin Print[0] <= 8'd48; Print[2] <= 8'd55; Print[3] <= 8'd57; end // 79
+			7'b1010000: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd48; end // 80
+			7'b1010001: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd49; end // 81
+			7'b1010010: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd50; end // 82
+			7'b1010011: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd51; end // 83
+			7'b1010100: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd52; end // 84
+			7'b1010101: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd53; end // 85
+			7'b1010110: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd54; end // 86
+			7'b1010111: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd55; end // 87
+			7'b1011000: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd56; end // 88
+			7'b1011001: begin Print[0] <= 8'd48; Print[2] <= 8'd56; Print[3] <= 8'd57; end // 89
+			7'b1011010: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd48; end // 90
+			7'b1011011: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd49; end // 91
+			7'b1011100: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd50; end // 92
+			7'b1011101: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd51; end // 93
+			7'b1011110: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd52; end // 94
+			7'b1011111: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd53; end // 95
+			7'b1100000: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd54; end // 96
+			7'b1100001: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd55; end // 97
+			7'b1100010: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd56; end // 98
+			7'b1100011: begin Print[0] <= 8'd48; Print[2] <= 8'd57; Print[3] <= 8'd57; end // 99
+			7'b1100100: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd48; end // 100
+			7'b1100101: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd49; end // 101
+			7'b1100110: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd50; end // 102
+			7'b1100111: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd51; end // 103
+			7'b1101000: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd52; end // 104
+			7'b1101001: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd53; end // 105
+			7'b1101010: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd54; end // 106
+			7'b1101011: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd55; end // 107
+			7'b1101100: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd56; end // 108
+			7'b1101101: begin Print[0] <= 8'd49; Print[2] <= 8'd48; Print[3] <= 8'd57; end // 109
+			7'b1101110: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd48; end // 110
+			7'b1101111: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd49; end // 111
+			7'b1110000: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd50; end // 112
+			7'b1110001: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd51; end // 113
+			7'b1110010: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd52; end // 114
+			7'b1110011: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd53; end // 115
+			7'b1110100: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd54; end // 116
+			7'b1110101: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd55; end // 117
+			7'b1110110: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd56; end // 118
+			7'b1110111: begin Print[0] <= 8'd49; Print[2] <= 8'd49; Print[3] <= 8'd57; end // 119
+			7'b1111000: begin Print[0] <= 8'd49; Print[2] <= 8'd50; Print[3] <= 8'd48; end // 120
+			7'b1111001: begin Print[0] <= 8'd49; Print[2] <= 8'd50; Print[3] <= 8'd49; end // 121
+			7'b1111010: begin Print[0] <= 8'd49; Print[2] <= 8'd50; Print[3] <= 8'd50; end // 122
+			7'b1111011: begin Print[0] <= 8'd49; Print[2] <= 8'd50; Print[3] <= 8'd51; end // 123
+			7'b1111100: begin Print[0] <= 8'd49; Print[2] <= 8'd50; Print[3] <= 8'd52; end // 124
+			7'b1111101: begin Print[0] <= 8'd49; Print[2] <= 8'd50; Print[3] <= 8'd53; end // 125
+			7'b1111110: begin Print[0] <= 8'd49; Print[2] <= 8'd50; Print[3] <= 8'd54; end // 126
+			7'b1111111: begin Print[0] <= 8'd49; Print[2] <= 8'd50; Print[3] <= 8'd55; end // 127
 		endcase
 	end
-end
-
-Uart_ClkDiv uart_clkdiv(.Sys_CLK(Sys_CLK), .Sys_RST(Sys_RST), .Uart_CLK(Uart_CLK));
-Uart_Tx uart_tx(.Uart_CLK(Uart_CLK), .Data_Tx(Data_Tx), .Wrsig(Wrsig), .Idle(Idle), .Signal_Tx(Signal_Tx));
-Uart_Rx uart_rx(.Uart_CLK(Uart_CLK), .Uart_RST(Sys_RST), .Signal_Rx(Signal_Rx), .Data_Rx(Data_Rx), .Rdsig(Rdsig), .DataError_Flag(Rx_DataError_Flag), .FrameError_Flag(Rx_FrameError_Flag));
-
+	
+	Uart_ClkDiv uart_clkdiv(.Sys_CLK(Sys_CLK), .Sys_RST(Sys_RST), .Uart_CLK(Uart_CLK));
+	Uart_Tx uart_tx(.Uart_CLK(Uart_CLK), .Data_Tx(Data_Tx), .Wrsig(Wrsig), .Idle(Idle), .Signal_Tx(Signal_Tx));
+	Uart_Rx uart_rx(.Uart_CLK(Uart_CLK), .Uart_RST(Sys_RST), .Signal_Rx(Signal_Rx), .Data_Rx(Data_Rx), .Rdsig(Rdsig), .DataError_Flag(Rx_DataError_Flag), .FrameError_Flag(Rx_FrameError_Flag));
+	
 endmodule

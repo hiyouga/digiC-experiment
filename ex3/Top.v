@@ -18,11 +18,15 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	wire [4:0] index;
 	wire [7:0] oplist;
 	wire [3:0] line;
+	wire send_idle;
 	reg mode;
-	reg [3:0] send_index;
+	reg sending;
+	reg [4:0] send_index;
+	reg [4:0] max_index;
 	reg [4:0] length;
 	reg [7:0] records[0:15];
-	reg [7:0] data;
+	reg [7:0] send_data;
+	reg send_enable;
 	integer i;
 	
 	always @(posedge sys_clk or negedge sys_rst) begin
@@ -30,21 +34,48 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 			mode <= 1'b0;
 			for (i=0; i<16; i=i+1)
 				records[i] <= 8'b0;
+			sending <= 1'b0;
+			send_index <= 5'b0;
+			max_index <= 5'b0;
 			length <= 5'b0;
+			send_data <= 8'b0;
+			send_enable <= 1'b0;
 		end
 		else begin
-			if (switch[1] == 1'b0) // MODE_RUN
+			if (switch[1] == 1'b0) begin // MODE_RUN
 				mode <= 1'b0;
-			else // MODE_DEMO
-				mode <= 1'b1;
-			if (switch[0] == 1'b1) begin // Record
-				if (length != index && length < 16) begin
-					length <= index;
-					records[length] <= oplist;
+				if (switch[0] == 1'b1) begin // Record
+					if (length != index && length < 16) begin
+						length <= index;
+						records[length] <= oplist;
+					end
+				end
+				else begin
+					if (length) begin
+						max_index <= length;
+						length <= 1'b0;
+					end
+					if (key_out[1] && !sending) begin // Send start
+						sending <= 1'b1;
+					end
+				end
+				if (sending) begin // Sending
+					if (send_idle && !send_enable) begin
+						send_enable <= 1'b1;
+						send_data <= records[send_index];
+						send_index <= send_index + 1;
+					end
+					else if (!send_idle) begin
+						if (send_index == max_index) begin
+							sending <= 1'b0;
+							send_index <= 5'b0;
+						end
+						send_enable <= 1'b0;
+					end
 				end
 			end
-			else begin
-				length <= 1'b0;
+			else begin // MODE_DEMO
+				mode <= 1'b1;
 			end
 		end
 	end
@@ -95,9 +126,9 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 		.Sys_RST(sys_rst),
 		.Signal_Tx(Uart_Tx),
 		.Signal_Rx(Uart_Rx),
-		.Key_In(key_out[1]),
-		.Length(length),
-		.Data(data)
+		.Data(send_data),
+		.Tx_Sig(send_enable),
+		.Tx_Idle(send_idle)
 	);
 	
 endmodule

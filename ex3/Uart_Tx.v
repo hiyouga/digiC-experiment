@@ -1,16 +1,16 @@
-module Uart_Tx(Uart_CLK, Data_Tx, Wrsig, Idle, Signal_Tx);
+ï»¿module Uart_Tx(Uart_CLK, Data_Tx, Wrsig, Idle, Signal_Tx);
 
-input Uart_CLK; // ²ÉÑùÊ±ÖÓ
-input [7:0] Data_Tx; // ·¢ËÍĞÅºÅ
-input Wrsig; // ·¢ËÍÊ¹ÄÜ
-output reg Idle; // ¿ÕÏĞ
-output reg Signal_Tx; // ·¢ËÍĞÅºÅ
+input Uart_CLK; // é‡‡æ ·æ—¶é’Ÿ
+input [7:0] Data_Tx; // å‘é€ä¿¡å·
+input Wrsig; // å‘é€ä½¿èƒ½
+output reg Idle; // ç©ºé—²
+output reg Signal_Tx; // å‘é€ä¿¡å·
 
-reg Send; // ·¢ËÍ
+reg Send; // å‘é€
 reg WrsigBuf;
-reg WrsigRise; // ·¢ËÍÃüÁî
-reg Presult; // Ğ£ÑéÎ»
-reg [7:0] Tx_Cnt; // ´«ÊäÎ»Êı
+reg WrsigRise; // å‘é€å‘½ä»¤
+reg Presult; // æ ¡éªŒä½
+reg [7:0] Tx_Cnt; // ä¼ è¾“ä½æ•°
 
 parameter paritymode = 1'b0;
 
@@ -20,89 +20,89 @@ always @(posedge Uart_CLK) begin
 end
 
 ////////////////////////////////////////////////////////////////
-// Æô¶¯´®¿Ú·¢ËÍ³ÌĞò
+// å¯åŠ¨ä¸²å£å‘é€ç¨‹åº
 ////////////////////////////////////////////////////////////////
 
 always @(posedge Uart_CLK) begin
-	if(WrsigRise && (~Idle)) // µ±·¢ËÍÃüÁîÓĞĞ§ÇÒÏßÂ·Îª¿ÕÏĞÊ±£¬Æô¶¯ĞÂµÄÊı¾İ·¢ËÍ½ø³Ì
+	if(WrsigRise && (~Idle)) // å½“å‘é€å‘½ä»¤æœ‰æ•ˆä¸”çº¿è·¯ä¸ºç©ºé—²æ—¶ï¼Œå¯åŠ¨æ–°çš„æ•°æ®å‘é€è¿›ç¨‹
 		Send <= 1'b1;
-	else if(Tx_Cnt == 8'd168) // Ò»Ö¡×ÊÁÏ·¢ËÍ½áÊø
+	else if(Tx_Cnt == 8'd168) // ä¸€å¸§èµ„æ–™å‘é€ç»“æŸ
 		Send <= 1'b0;
 end
 
 ////////////////////////////////////////////////////////////////
-// ´®¿Ú·¢ËÍ³ÌĞò, 16¸öÊ±ÖÓ·¢ËÍÒ»¸öbit
+// ä¸²å£å‘é€ç¨‹åº, 16ä¸ªæ—¶é’Ÿå‘é€ä¸€ä¸ªbit
 ////////////////////////////////////////////////////////////////
 
 always @(posedge Uart_CLK) begin
 	if (Send == 1'b1) begin
 		case(Tx_Cnt) 
 			8'd0:		begin
-							Signal_Tx <= 1'b0; // ²úÉúÆğÊ¼Î»
+							Signal_Tx <= 1'b0; // äº§ç”Ÿèµ·å§‹ä½
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd16:	begin
-							Signal_Tx <= Data_Tx[0]; // ·¢ËÍÊı¾İ0Î»
+							Signal_Tx <= Data_Tx[0]; // å‘é€æ•°æ®0ä½
 							Presult <= Data_Tx[0]^paritymode;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd32:	begin
-							Signal_Tx <= Data_Tx[1]; // ·¢ËÍÊı¾İ1Î»
+							Signal_Tx <= Data_Tx[1]; // å‘é€æ•°æ®1ä½
 							Presult <= Data_Tx[1]^Presult;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd48:	begin
-							Signal_Tx <= Data_Tx[2]; // ·¢ËÍÊı¾İ2Î»
+							Signal_Tx <= Data_Tx[2]; // å‘é€æ•°æ®2ä½
 							Presult <= Data_Tx[2]^Presult;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd64:	begin
-							Signal_Tx <= Data_Tx[3]; // ·¢ËÍÊı¾İ3Î»
+							Signal_Tx <= Data_Tx[3]; // å‘é€æ•°æ®3ä½
 							Presult <= Data_Tx[3]^Presult;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd80:	begin 
-							Signal_Tx <= Data_Tx[4]; // ·¢ËÍÊı¾İ4Î»
+							Signal_Tx <= Data_Tx[4]; // å‘é€æ•°æ®4ä½
 							Presult <= Data_Tx[4]^Presult;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd96:	begin
-							Signal_Tx <= Data_Tx[5]; // ·¢ËÍÊı¾İ5Î»
+							Signal_Tx <= Data_Tx[5]; // å‘é€æ•°æ®5ä½
 							Presult <= Data_Tx[5]^Presult;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd112:	begin
-							Signal_Tx <= Data_Tx[6]; // ·¢ËÍÊı¾İ6Î»
+							Signal_Tx <= Data_Tx[6]; // å‘é€æ•°æ®6ä½
 							Presult <= Data_Tx[6]^Presult;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd128:	begin 
-							Signal_Tx <= Data_Tx[7]; // ·¢ËÍÊı¾İ7Î»
+							Signal_Tx <= Data_Tx[7]; // å‘é€æ•°æ®7ä½
 							Presult <= Data_Tx[7]^Presult;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd144:	begin
-							Signal_Tx <= Presult; // ·¢ËÍÆæÅ¼Ğ£ÑéÎ»
+							Signal_Tx <= Presult; // å‘é€å¥‡å¶æ ¡éªŒä½
 							Presult <= Data_Tx[0]^paritymode;
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd160:	begin
-							Signal_Tx <= 1'b1; // ·¢ËÍÍ£Ö¹Î»             
+							Signal_Tx <= 1'b1; // å‘é€åœæ­¢ä½             
 							Idle <= 1'b1;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
 			8'd168:	begin
-							Signal_Tx <= 1'b1; // Ò»Ö¡×ÊÁÏ·¢ËÍ½áÊø
+							Signal_Tx <= 1'b1; // ä¸€å¸§èµ„æ–™å‘é€ç»“æŸ
 							Idle <= 1'b0;
 							Tx_Cnt <= Tx_Cnt + 8'd1;
 						end
