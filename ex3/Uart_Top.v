@@ -1,30 +1,33 @@
-﻿module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Tx_Sig, Tx_Idle);
+module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Tx_Sig, Tx_Idle, Recv_index, Recv_data);
 	input Sys_CLK;
 	input Sys_RST;
 	input Signal_Rx;
 	output Signal_Tx;
 	input [7:0] Data;
+	input [4:0] Length;
 	input Tx_Sig;
 	output reg Tx_Idle;
+	output reg [4:0] Recv_index;
+	output reg [7:0] Recv_data;
 	
 	///////// For Uart Essential begin
-	wire Uart_CLK; // 时钟分频
-	reg [7:0] Data_Tx; // 传送数据
-	wire [7:0] Data_Rx; // 接收数据
-	reg Wrsig; // 写使能
-	wire Rdsig; // 读使能
-	wire Idle; // Tx空闲信号
-	wire Rx_DataError_Flag; // 数据异常
-	wire Rx_FrameError_Flag; // 帧异常
-	reg Error_Flag; // 异常信号
-	reg [2:0] State; // 状态寄存器
-	reg [7:0] cnt; // 发送采样信号
+	wire Uart_CLK;
+	reg [7:0] Data_Tx;
+	wire [7:0] Data_Rx;
+	reg Wrsig;
+	wire Rdsig;
+	wire Idle;
+	wire Rx_DataError_Flag;
+	wire Rx_FrameError_Flag;
+	reg Error_Flag;
+	reg [2:0] State;
+	reg [7:0] cnt;
 	///////// End
-	reg [7:0] Print[0:8]; // 输出字符串 t.tts:on/of\r
-	reg [3:0] Data_Cnt; // 数据下标
+	reg [7:0] Print[0:8]; // Print string t.tts:on/of\r
+	reg [3:0] Data_Cnt;
 	reg [3:0] Print_Cnt;
 	
-	// 状态机编码
+	// State Encodings
 	parameter Wait_Rdsig = 3'b000;
 	parameter Check_Data = 3'b001;
 	parameter Save_Data = 3'b010;
@@ -42,7 +45,7 @@
 		end
 		else begin
 			case(State)
-				Wait_Rdsig:	begin // 等待接收信号
+				Wait_Rdsig:	begin
 									if (Tx_Sig) begin
 										Tx_Idle = 1'b0;
 										State = Trans_Data;
@@ -55,7 +58,7 @@
 											State = Check_Data;
 									end
 								end
-				Check_Data:	begin // 检查是否有错误 
+				Check_Data:	begin
 									if (Rdsig)
 										State = Check_Data;
 									else begin
@@ -63,9 +66,9 @@
 										State = Save_Data;
 									end
 								end
-				Save_Data:	begin // 储存数据
+				Save_Data:	begin
 									if (!Error_Flag) begin
-										if (Data_Cnt == 4'd8) begin // 接收完毕
+										if (Data_Cnt == 4'd8) begin
 											Data_Cnt = 4'd0;
 											State = Trans_Data;
 										end
@@ -76,13 +79,13 @@
 									else
 										State = Trans_Data;
 								end
-				Trans_Data:	begin // 传输数据
-									if (Print_Cnt == 4'd9) begin // 输出完毕
+				Trans_Data:	begin
+									if (Print_Cnt == 4'd9) begin
 										Print_Cnt = 4'd0;
 										State = State_Delay;
 									end
 									else begin
-										if (cnt == 254) begin // 进一步分频
+										if (cnt == 254) begin
 											Data_Tx = Print[Print_Cnt];
 											Wrsig = 1'b1;
 											cnt = 8'd0;
@@ -94,8 +97,8 @@
 										end
 									end
 								end
-				State_Delay:begin // 等待延迟
-									if (cnt == 254) begin // 输出回车
+				State_Delay:begin
+									if (cnt == 254) begin
 										cnt = 8'd0;
 										State = Wait_Rdsig;
 									end
@@ -104,7 +107,7 @@
 										cnt = cnt + 8'd1;
 									end
 								end
-				default:		begin // 复位
+				default:		begin
 									Wrsig = 1'b0;
 									cnt = 8'd0;
 									State = 2'b0;

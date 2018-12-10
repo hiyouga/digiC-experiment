@@ -1,6 +1,7 @@
-module Recorder(Sys_CLK, Sys_RST, Key_In, Length, Light, Index, opList);
+module Recorder(Sys_CLK, Sys_RST, Recording, Key_In, Length, Light, Index, opList);
 	input Sys_CLK;
 	input Sys_RST;
+	input Recording;
 	input Key_In;
 	input [4:0] Length;
 	input [1:0] Light;
@@ -17,7 +18,7 @@ module Recorder(Sys_CLK, Sys_RST, Key_In, Length, Light, Index, opList);
 			cnt <= 0;
 			number <= 7'b0;
 		end
-		else if (Key_In) begin
+		else if (Key_In || !Recording) begin
 			cnt <= 0;
 			number <= 7'b0;
 		end
@@ -38,6 +39,8 @@ module Recorder(Sys_CLK, Sys_RST, Key_In, Length, Light, Index, opList);
 			opList <= 8'b0;
 		end
 		else begin
+			if (!Recording)
+				Index <= 5'b0;
 			if (Key_In) begin
 				if (Light == 2'b00) begin
 					opList[7] <= 1'b1;

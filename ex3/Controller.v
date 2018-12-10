@@ -1,8 +1,12 @@
-module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
+module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Auto, Auto_enable, Auto_data, Auto_idle, Light, Number, State);
 	input Sys_CLK;
 	input Sys_RST;
 	input Key_In;
 	input Mode;
+	input Auto;
+	input Auto_enable;
+	input [6:0] Auto_data;
+	output reg Auto_idle;
 	output reg [1:0] Light;
 	output reg [7:0] Number;
 	output reg [2:0] State;
@@ -11,9 +15,14 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
 	parameter normal_interval = 50000000; // 1s
 	parameter slow_interval = 500000000; // 10s
 	
+	reg Key;
+	reg Key_Auto;
 	reg [31:0] interval;
 	reg [31:0] cnt;
 	reg [31:0] Counter;
+	integer auto_cnt;
+	reg [6:0] auto_num;
+	reg running;
 	
 	// State Encoding
 	parameter White_Off	= 3'b000;
@@ -23,6 +32,57 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
 	parameter Yellow_Off	= 3'b100;
 	parameter Yellow_On	= 3'b101;
 	
+	always @(posedge Sys_CLK or negedge Sys_RST) begin
+		if (!Sys_RST) begin
+			auto_cnt <= 0;
+			auto_num <= 7'b0;
+			running <= 1'b0;
+			Key_Auto <= 1'b0;
+			Auto_idle <= 1'b1;
+		end
+		else begin
+			if (Key_Auto) // Restrict to a cycle
+				Key_Auto <= 1'b0;
+			if (running) begin
+				if (auto_cnt == unit_interval) begin
+					auto_cnt <= 0;
+					if (auto_num == Auto_data) begin
+						Key_Auto <= 1'b1;
+						auto_num <= 7'b0;
+						running <= 1'b0;
+						Auto_idle <= 1'b1;
+					end
+					else
+						auto_num <= auto_num + 1;
+				end
+				else
+					auto_cnt <= cnt + 1;
+			end
+			else if (Auto_enable) begin
+				running <= 1'b1;
+				Auto_idle <= 1'b0;
+			end
+		end
+	end
+	
+	/* 
+	 * Key signal source (May cause a time-delay)
+	 */
+	always @(posedge Sys_CLK or negedge Sys_RST) begin
+		if (!Sys_RST) begin
+			Key <= 1'b0;
+		end
+		else begin
+			if (Auto)
+				Key <= Key_Auto;
+			else
+				Key <= Key_In;
+		end
+	end
+	
+	/* 
+	 * Display time for Display_num module
+	 */
 	always @(posedge Sys_CLK or negedge Sys_RST) begin
 		if (!Sys_RST) begin
 			cnt <= 0;
@@ -54,6 +114,9 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
 		end
 	end
 	
+	/* 
+	 * Change interval by Mode signal
+	 */
 	always @(Mode) begin
 		if (Mode == 1'b0)
 			interval <= normal_interval;
@@ -61,6 +124,9 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
 			interval <= slow_interval;
 	end
 	
+	/* 
+	 * Main Finite State Machine
+	 */
 	always @(posedge Sys_CLK or negedge Sys_RST) begin
 		if (!Sys_RST) begin
 			State <= White_Off;
@@ -71,7 +137,7 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
 			case (State)
 				White_Off:	begin
 									Light <= 2'b00;
-									if (Key_In) begin
+									if (Key) begin
 										State <= White_On;
 										Counter <= 32'b0;
 									end
@@ -80,14 +146,14 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
 								end
 				White_On:	begin
 									Light <= 2'b01;
-									if (Key_In)
+									if (Key)
 										State <= Sun_Off;
 									else
 										State <= White_On;
 								end
 				Sun_Off:		begin
 									Light <= 2'b00;
-									if (Key_In) begin
+									if (Key) begin
 										State <= Sun_On;
 										Counter <= 32'b0;
 									end
@@ -99,14 +165,14 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
 								end
 				Sun_On:		begin
 									Light <= 2'b10;
-									if (Key_In)
+									if (Key)
 										State <= Yellow_Off;
 									else
 										State <= Sun_On;
 								end
 				Yellow_Off:	begin
 									Light <= 2'b00;
-									if (Key_In) begin
+									if (Key) begin
 										State <= Yellow_On;
 										Counter <= 32'b0;
 									end
@@ -118,7 +184,7 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Light, Number, State);
 								end
 				Yellow_On:	begin
 									Light <= 2'b11;
-									if (Key_In)
+									if (Key)
 										State <= White_Off;
 									else
 										State <= Yellow_On;
