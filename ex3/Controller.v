@@ -56,7 +56,7 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Auto, Auto_enable, Auto_data, 
 						auto_num <= auto_num + 1;
 				end
 				else
-					auto_cnt <= cnt + 1;
+					auto_cnt <= auto_cnt + 1;
 			end
 			else if (Auto_enable) begin
 				running <= 1'b1;

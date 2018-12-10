@@ -73,6 +73,8 @@ module Top_tb;
 		#100;
 		switch = 2'b00;
 		#100;
+		switch = 2'b10;
+		#100;
 		key = 2'b10;
 		#2000000;
 		key = 2'b00;
