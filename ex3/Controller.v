@@ -32,6 +32,9 @@ module Controller(Sys_CLK, Sys_RST, Key_In, Mode, Auto, Auto_enable, Auto_data, 
 	parameter Yellow_Off	= 3'b100;
 	parameter Yellow_On	= 3'b101;
 	
+	/* 
+	 * Auto signal simulation
+	 */
 	always @(posedge Sys_CLK or negedge Sys_RST) begin
 		if (!Sys_RST) begin
 			auto_cnt <= 0;
