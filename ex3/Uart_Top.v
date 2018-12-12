@@ -1,10 +1,11 @@
-module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Tx_Sig, Tx_Idle, Recv_index, Recv_data);
+module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Receiving, Tx_Sig, Tx_Idle, Recv_index, Recv_data);
 	input Sys_CLK;
 	input Sys_RST;
 	input Signal_Rx;
 	output Signal_Tx;
 	input [7:0] Data;
 	input [4:0] Length;
+	input Receiving;
 	input Tx_Sig;
 	output reg Tx_Idle;
 	output reg [4:0] Recv_index;
@@ -24,8 +25,9 @@ module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Tx_Sig, Tx
 	reg [7:0] cnt;
 	///////// End
 	reg [7:0] Print[0:8]; // Print string t.tts:on/of\r
-	reg [3:0] Data_Cnt;
+	reg [7:0] Recv_Reg;
 	reg [3:0] Print_Cnt;
+	reg [3:0] Recv_Cnt;
 	
 	// State Encodings
 	parameter Wait_Rdsig = 3'b000;
@@ -36,81 +38,91 @@ module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Tx_Sig, Tx
 	
 	always @(posedge Uart_CLK or negedge Sys_RST) begin
 		if (!Sys_RST) begin
-			Wrsig = 1'b0;
-			State = 3'b0;
-			cnt = 8'b0;
-			Tx_Idle = 1'b1;
-			Data_Tx = 8'b0;
-			Print_Cnt = 4'b0;
+			Wrsig <= 1'b0;
+			State <= 3'b0;
+			cnt <= 8'b0;
+			Tx_Idle <= 1'b1;
+			Data_Tx <= 8'b0;
+			Print_Cnt <= 4'b0;
+			Recv_Reg <= 8'b0;
+			Recv_Cnt <= 4'b0;
+			Recv_index <= 5'b0;
+			Recv_data <= 8'b0;
 		end
 		else begin
+			if (!Receiving)
+				Recv_index <= 5'b0;
 			case(State)
 				Wait_Rdsig:	begin
 									if (Tx_Sig) begin
-										Tx_Idle = 1'b0;
-										State = Trans_Data;
+										Tx_Idle <= 1'b0;
+										State <= Trans_Data;
 									end
 									else begin
-										Tx_Idle = 1'b1;
+										Tx_Idle <= 1'b1;
+										if (Recv_Cnt == 4'd8) begin
+											Recv_Cnt <= 4'd0;
+											Recv_index <= Length + 1;
+											Recv_data <= Recv_Reg;
+										end
 										if (!Rdsig)
-											State = Wait_Rdsig;
+											State <= Wait_Rdsig;
 										else
-											State = Check_Data;
+											State <= Check_Data;
 									end
 								end
 				Check_Data:	begin
 									if (Rdsig)
-										State = Check_Data;
+										State <= Check_Data;
 									else begin
-										Error_Flag = Rx_DataError_Flag || Rx_FrameError_Flag;
-										State = Save_Data;
+										Error_Flag <= Rx_DataError_Flag || Rx_FrameError_Flag;
+										State <= Save_Data;
 									end
 								end
 				Save_Data:	begin
 									if (!Error_Flag) begin
-										if (Data_Cnt == 4'd8) begin
-											Data_Cnt = 4'd0;
-											State = Trans_Data;
-										end
-										else begin
-											State = Wait_Rdsig;
-										end
+										case (Data_Rx)
+											8'd48: Recv_Reg[7-Recv_Cnt] <= 1'b0;
+											8'd49: Recv_Reg[7-Recv_Cnt] <= 1'b1;
+										endcase
+										Recv_Cnt <= Recv_Cnt + 1;
+										State <= Wait_Rdsig;
 									end
 									else
-										State = Trans_Data;
+										State <= Trans_Data;
 								end
 				Trans_Data:	begin
 									if (Print_Cnt == 4'd9) begin
-										Print_Cnt = 4'd0;
-										State = State_Delay;
+										Print_Cnt <= 4'd0;
+										State <= State_Delay;
 									end
 									else begin
 										if (cnt == 254) begin
-											Data_Tx = Print[Print_Cnt];
-											Wrsig = 1'b1;
-											cnt = 8'd0;
-											Print_Cnt = Print_Cnt + 1;
+											Data_Tx <= Print[Print_Cnt];
+											Wrsig <= 1'b1;
+											cnt <= 8'd0;
+											Print_Cnt <= Print_Cnt + 1;
 										end
 										else begin
-											Wrsig = 1'b0;
-											cnt = cnt + 8'd1;
+											Wrsig <= 1'b0;
+											cnt <= cnt + 8'd1;
 										end
 									end
 								end
 				State_Delay:begin
 									if (cnt == 254) begin
-										cnt = 8'd0;
-										State = Wait_Rdsig;
+										cnt <= 8'd0;
+										State <= Wait_Rdsig;
 									end
 									else begin
-										Wrsig = 1'b0;
-										cnt = cnt + 8'd1;
+										Wrsig <= 1'b0;
+										cnt <= cnt + 8'd1;
 									end
 								end
 				default:		begin
-									Wrsig = 1'b0;
-									cnt = 8'd0;
-									State = 2'b0;
+									Wrsig <= 1'b0;
+									cnt <= 8'd0;
+									State <= 2'b0;
 								end
 			endcase
 		end

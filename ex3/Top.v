@@ -177,6 +177,7 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 		.Signal_Rx(Uart_Rx),
 		.Data(send_data),
 		.Length(length),
+		.Receiving(switch[0]),
 		.Tx_Sig(send_enable),
 		.Tx_Idle(send_idle),
 		.Recv_index(recv_index),
