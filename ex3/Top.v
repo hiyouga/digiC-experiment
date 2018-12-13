@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps
-
 module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	input sys_clk;
 	input sys_rst;
@@ -33,6 +31,7 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 	reg [6:0] auto_data;
 	reg send_enable;
 	reg auto_enable;
+	reg [1:0] light_old;
 	integer i;
 	
 	always @(posedge sys_clk or negedge sys_rst) begin
@@ -50,6 +49,7 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 			auto_data <= 8'b0;
 			send_enable <= 1'b0;
 			auto_enable <= 1'b0;
+			light_old <= 2'b0;
 		end
 		else begin
 			if (switch[1] == 1'b0) begin // MODE_RUN
@@ -96,6 +96,14 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 					end
 				end
 				else begin
+					if (light != light_old) begin
+						light_old <= light;
+						if (send_idle && !send_enable)
+							send_enable <= 1'b1;
+					end
+					if (!send_idle) begin
+						send_enable <= 1'b0;
+					end
 					if (length) begin
 						max_index <= length;
 						length <= 1'b0;
@@ -175,9 +183,10 @@ module Top(sys_clk, sys_rst, switch, key, com, seg, led, Uart_Tx, Uart_Rx);
 		.Sys_RST(sys_rst),
 		.Signal_Tx(Uart_Tx),
 		.Signal_Rx(Uart_Rx),
+		.Light(light),
 		.Data(send_data),
 		.Length(length),
-		.Receiving(switch[0]),
+		.Switch(switch),
 		.Tx_Sig(send_enable),
 		.Tx_Idle(send_idle),
 		.Recv_index(recv_index),

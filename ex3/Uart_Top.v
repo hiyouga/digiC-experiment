@@ -1,11 +1,12 @@
-module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Receiving, Tx_Sig, Tx_Idle, Recv_index, Recv_data);
+module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Light, Data, Length, Switch, Tx_Sig, Tx_Idle, Recv_index, Recv_data);
 	input Sys_CLK;
 	input Sys_RST;
 	input Signal_Rx;
 	output Signal_Tx;
+	input [1:0] Light;
 	input [7:0] Data;
 	input [4:0] Length;
-	input Receiving;
+	input [1:0] Switch;
 	input Tx_Sig;
 	output reg Tx_Idle;
 	output reg [4:0] Recv_index;
@@ -28,13 +29,16 @@ module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Receiving,
 	reg [7:0] Recv_Reg;
 	reg [3:0] Print_Cnt;
 	reg [3:0] Recv_Cnt;
+	reg [3:0] Echo_Cnt;
+	reg [7:0] String[0:3][0:6];
 	
 	// State Encodings
 	parameter Wait_Rdsig = 3'b000;
 	parameter Check_Data = 3'b001;
 	parameter Save_Data = 3'b010;
 	parameter Trans_Data = 3'b011;
-	parameter State_Delay = 3'b100;
+	parameter Echo_State = 3'b100;
+	parameter State_Delay = 3'b101;
 	
 	always @(posedge Uart_CLK or negedge Sys_RST) begin
 		if (!Sys_RST) begin
@@ -48,15 +52,47 @@ module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Receiving,
 			Recv_Cnt <= 4'b0;
 			Recv_index <= 5'b0;
 			Recv_data <= 8'b0;
+			Echo_Cnt <= 4'b0;
+			String[0][0] <= 8'd79; // O
+			String[0][1] <= 8'd102; // f
+			String[0][2] <= 8'd102; // f
+			String[0][3] <= 8'd32; // _
+			String[0][4] <= 8'd32; // _
+			String[0][5] <= 8'd32; // _
+			String[0][6] <= 8'd13; // \r
+			String[1][0] <= 8'd87; // W
+			String[1][1] <= 8'd104; // h
+			String[1][2] <= 8'd105; // i
+			String[1][3] <= 8'd116; // t
+			String[1][4] <= 8'd101; // e
+			String[1][5] <= 8'd32; // _
+			String[1][6] <= 8'd13; // \r
+			String[2][0] <= 8'd83; // S
+			String[2][1] <= 8'd117; // u
+			String[2][2] <= 8'd110; // n
+			String[2][3] <= 8'd32; // _
+			String[2][4] <= 8'd32; // _
+			String[2][5] <= 8'd32; // _
+			String[2][6] <= 8'd13; // \r
+			String[3][0] <= 8'd89; // Y
+			String[3][1] <= 8'd101; // e
+			String[3][2] <= 8'd108; // l
+			String[3][3] <= 8'd108; // l
+			String[3][4] <= 8'd111; // o
+			String[3][5] <= 8'd119; // w
+			String[3][6] <= 8'd13; // \r
 		end
 		else begin
-			if (!Receiving)
+			if (!Switch[0]) // Receiving Complete
 				Recv_index <= 5'b0;
 			case(State)
 				Wait_Rdsig:	begin
 									if (Tx_Sig) begin
 										Tx_Idle <= 1'b0;
-										State <= Trans_Data;
+										if (Switch[1] == 1'b0) // MODE_RUN
+											State <= Trans_Data;
+										else // MODE_DEMO
+											State <= Echo_State;
 									end
 									else begin
 										Tx_Idle <= 1'b1;
@@ -102,6 +138,24 @@ module Uart_Top(Sys_CLK, Sys_RST, Signal_Tx, Signal_Rx, Data, Length, Receiving,
 											Wrsig <= 1'b1;
 											cnt <= 8'd0;
 											Print_Cnt <= Print_Cnt + 1;
+										end
+										else begin
+											Wrsig <= 1'b0;
+											cnt <= cnt + 8'd1;
+										end
+									end
+								end
+				Echo_State:	begin
+									if (Echo_Cnt == 4'd7) begin
+										Echo_Cnt <= 4'd0;
+										State <= State_Delay;
+									end
+									else begin
+										if (cnt == 254) begin
+											Data_Tx <= String[Light][Echo_Cnt];
+											Wrsig <= 1'b1;
+											cnt <= 8'd0;
+											Echo_Cnt <= Echo_Cnt + 1;
 										end
 										else begin
 											Wrsig <= 1'b0;
