@@ -1,0 +1,3 @@
+NET "sys_clk" LOC = P36;
+NET "sys_rst" LOC = P11;
+NET "sys_rst" PULLUP;
