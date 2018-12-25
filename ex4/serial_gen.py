@@ -10,59 +10,60 @@ cnt = 0
 output = []
 
 for i in range(15):
-    print("ROM[{:d}]=1'b0;".format(j))
+    print("ROM[{:d}] <= 1'b0;".format(j))
     output.append("0\n")
     j+=1
 for i in range(15):
-    print("ROM[{:d}]=1'b1;".format(j))
+    print("ROM[{:d}] <= 1'b1;".format(j))
     output.append("1\n")
     j+=1;
 
 for d in data:
     if(d == 0):
         for i in range(5):
-            print("ROM[{:d}]=1'b0;".format(j))
+            print("ROM[{:d}] <= 1'b0;".format(j))
             output.append("0\n")
             j+=1
         for i in range(6):
-            print("ROM[{:d}]=1'b1;".format(j))
+            print("ROM[{:d}] <= 1'b1;".format(j))
             output.append("1\n")
             j+=1
     else:
         cnt += 1
         for i in range(5):
-            print("ROM[{:d}]=1'b1;".format(j))
+            print("ROM[{:d}] <= 1'b1;".format(j))
             output.append("1\n")
             j+=1
         for i in range(6):
-            print("ROM[{:d}]=1'b0;".format(j))
+            print("ROM[{:d}] <= 1'b0;".format(j))
             output.append("0\n")
             j+=1
 
 if cnt % 2 == 0:
+#if cnt % 2 != 0: # ERROR
     for i in range(5):
-        print("ROM[{:d}]=1'b1;".format(j))
+        print("ROM[{:d}] <= 1'b1;".format(j))
         output.append("1\n")
         j+=1
     for i in range(5):
-        print("ROM[{:d}]=1'b0;".format(j))
+        print("ROM[{:d}] <= 1'b0;".format(j))
         output.append("0\n")
         j+=1
     while j < 220:
-        print("ROM[{:d}]=1'b0;".format(j))
+        print("ROM[{:d}] <= 1'b0;".format(j))
         output.append("0\n")
         j+=1
 else:
     for i in range(5):
-        print("ROM[{:d}]=1'b0;".format(j))
+        print("ROM[{:d}] <= 1'b0;".format(j))
         output.append("0\n")
         j+=1
     for i in range(5):
-        print("ROM[{:d}]=1'b1;".format(j))
+        print("ROM[{:d}] <= 1'b1;".format(j))
         output.append("1\n")
         j+=1
     while j < 220:
-        print("ROM[{:d}]=1'b1;".format(j))
+        print("ROM[{:d}] <= 1'b1;".format(j))
         output.append("1\n")
         j+=1
 

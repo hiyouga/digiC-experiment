@@ -1,43 +1,264 @@
-module Serial_Generate(clk, serial_data, div_clk, rst);
+module Serial_Generate(clk, enable, serial_data, div_clk, rst);
 	input clk;
+	input enable;
 	output reg serial_data;
 	output reg div_clk;
 	input rst;
 	
 	reg ROM [0:219];
-	reg [3:0] cnt_a;
-	reg [3:0] cnt_b;
+	reg [2:0] cnt_a;
+	reg [2:0] cnt_b;
 	reg [7:0] data_cnt;
 	
-	initial begin
+	/*initial begin
 		$readmemb("rom.patt", ROM);
-	end
+	end*/
 	
 	always @(posedge clk or negedge rst) begin
 		if (!rst) begin
 			div_clk <= 1'b0;
 			serial_data <= 1'b0;
-			cnt_a <= 4'b0;
-			cnt_b <= 4'b0;
+			cnt_a <= 3'b0;
+			cnt_b <= 3'b0;
 			data_cnt <= 8'b0;
+			ROM[0] <= 1'b0;
+			ROM[1] <= 1'b0;
+			ROM[2] <= 1'b0;
+			ROM[3] <= 1'b0;
+			ROM[4] <= 1'b0;
+			ROM[5] <= 1'b0;
+			ROM[6] <= 1'b0;
+			ROM[7] <= 1'b0;
+			ROM[8] <= 1'b0;
+			ROM[9] <= 1'b0;
+			ROM[10] <= 1'b0;
+			ROM[11] <= 1'b0;
+			ROM[12] <= 1'b0;
+			ROM[13] <= 1'b0;
+			ROM[14] <= 1'b0;
+			ROM[15] <= 1'b1;
+			ROM[16] <= 1'b1;
+			ROM[17] <= 1'b1;
+			ROM[18] <= 1'b1;
+			ROM[19] <= 1'b1;
+			ROM[20] <= 1'b1;
+			ROM[21] <= 1'b1;
+			ROM[22] <= 1'b1;
+			ROM[23] <= 1'b1;
+			ROM[24] <= 1'b1;
+			ROM[25] <= 1'b1;
+			ROM[26] <= 1'b1;
+			ROM[27] <= 1'b1;
+			ROM[28] <= 1'b1;
+			ROM[29] <= 1'b1;
+			ROM[30] <= 1'b0;
+			ROM[31] <= 1'b0;
+			ROM[32] <= 1'b0;
+			ROM[33] <= 1'b0;
+			ROM[34] <= 1'b0;
+			ROM[35] <= 1'b1;
+			ROM[36] <= 1'b1;
+			ROM[37] <= 1'b1;
+			ROM[38] <= 1'b1;
+			ROM[39] <= 1'b1;
+			ROM[40] <= 1'b1;
+			ROM[41] <= 1'b1;
+			ROM[42] <= 1'b1;
+			ROM[43] <= 1'b1;
+			ROM[44] <= 1'b1;
+			ROM[45] <= 1'b1;
+			ROM[46] <= 1'b0;
+			ROM[47] <= 1'b0;
+			ROM[48] <= 1'b0;
+			ROM[49] <= 1'b0;
+			ROM[50] <= 1'b0;
+			ROM[51] <= 1'b0;
+			ROM[52] <= 1'b0;
+			ROM[53] <= 1'b0;
+			ROM[54] <= 1'b0;
+			ROM[55] <= 1'b0;
+			ROM[56] <= 1'b0;
+			ROM[57] <= 1'b1;
+			ROM[58] <= 1'b1;
+			ROM[59] <= 1'b1;
+			ROM[60] <= 1'b1;
+			ROM[61] <= 1'b1;
+			ROM[62] <= 1'b1;
+			ROM[63] <= 1'b0;
+			ROM[64] <= 1'b0;
+			ROM[65] <= 1'b0;
+			ROM[66] <= 1'b0;
+			ROM[67] <= 1'b0;
+			ROM[68] <= 1'b1;
+			ROM[69] <= 1'b1;
+			ROM[70] <= 1'b1;
+			ROM[71] <= 1'b1;
+			ROM[72] <= 1'b1;
+			ROM[73] <= 1'b1;
+			ROM[74] <= 1'b1;
+			ROM[75] <= 1'b1;
+			ROM[76] <= 1'b1;
+			ROM[77] <= 1'b1;
+			ROM[78] <= 1'b1;
+			ROM[79] <= 1'b0;
+			ROM[80] <= 1'b0;
+			ROM[81] <= 1'b0;
+			ROM[82] <= 1'b0;
+			ROM[83] <= 1'b0;
+			ROM[84] <= 1'b0;
+			ROM[85] <= 1'b1;
+			ROM[86] <= 1'b1;
+			ROM[87] <= 1'b1;
+			ROM[88] <= 1'b1;
+			ROM[89] <= 1'b1;
+			ROM[90] <= 1'b0;
+			ROM[91] <= 1'b0;
+			ROM[92] <= 1'b0;
+			ROM[93] <= 1'b0;
+			ROM[94] <= 1'b0;
+			ROM[95] <= 1'b0;
+			ROM[96] <= 1'b1;
+			ROM[97] <= 1'b1;
+			ROM[98] <= 1'b1;
+			ROM[99] <= 1'b1;
+			ROM[100] <= 1'b1;
+			ROM[101] <= 1'b0;
+			ROM[102] <= 1'b0;
+			ROM[103] <= 1'b0;
+			ROM[104] <= 1'b0;
+			ROM[105] <= 1'b0;
+			ROM[106] <= 1'b0;
+			ROM[107] <= 1'b0;
+			ROM[108] <= 1'b0;
+			ROM[109] <= 1'b0;
+			ROM[110] <= 1'b0;
+			ROM[111] <= 1'b0;
+			ROM[112] <= 1'b1;
+			ROM[113] <= 1'b1;
+			ROM[114] <= 1'b1;
+			ROM[115] <= 1'b1;
+			ROM[116] <= 1'b1;
+			ROM[117] <= 1'b1;
+			ROM[118] <= 1'b1;
+			ROM[119] <= 1'b1;
+			ROM[120] <= 1'b1;
+			ROM[121] <= 1'b1;
+			ROM[122] <= 1'b1;
+			ROM[123] <= 1'b0;
+			ROM[124] <= 1'b0;
+			ROM[125] <= 1'b0;
+			ROM[126] <= 1'b0;
+			ROM[127] <= 1'b0;
+			ROM[128] <= 1'b0;
+			ROM[129] <= 1'b0;
+			ROM[130] <= 1'b0;
+			ROM[131] <= 1'b0;
+			ROM[132] <= 1'b0;
+			ROM[133] <= 1'b0;
+			ROM[134] <= 1'b1;
+			ROM[135] <= 1'b1;
+			ROM[136] <= 1'b1;
+			ROM[137] <= 1'b1;
+			ROM[138] <= 1'b1;
+			ROM[139] <= 1'b1;
+			ROM[140] <= 1'b0;
+			ROM[141] <= 1'b0;
+			ROM[142] <= 1'b0;
+			ROM[143] <= 1'b0;
+			ROM[144] <= 1'b0;
+			ROM[145] <= 1'b1;
+			ROM[146] <= 1'b1;
+			ROM[147] <= 1'b1;
+			ROM[148] <= 1'b1;
+			ROM[149] <= 1'b1;
+			ROM[150] <= 1'b1;
+			ROM[151] <= 1'b1;
+			ROM[152] <= 1'b1;
+			ROM[153] <= 1'b1;
+			ROM[154] <= 1'b1;
+			ROM[155] <= 1'b1;
+			ROM[156] <= 1'b0;
+			ROM[157] <= 1'b0;
+			ROM[158] <= 1'b0;
+			ROM[159] <= 1'b0;
+			ROM[160] <= 1'b0;
+			ROM[161] <= 1'b0;
+			ROM[162] <= 1'b1;
+			ROM[163] <= 1'b1;
+			ROM[164] <= 1'b1;
+			ROM[165] <= 1'b1;
+			ROM[166] <= 1'b1;
+			ROM[167] <= 1'b0;
+			ROM[168] <= 1'b0;
+			ROM[169] <= 1'b0;
+			ROM[170] <= 1'b0;
+			ROM[171] <= 1'b0;
+			ROM[172] <= 1'b0;
+			ROM[173] <= 1'b1;
+			ROM[174] <= 1'b1;
+			ROM[175] <= 1'b1;
+			ROM[176] <= 1'b1;
+			ROM[177] <= 1'b1;
+			ROM[178] <= 1'b0;
+			ROM[179] <= 1'b0;
+			ROM[180] <= 1'b0;
+			ROM[181] <= 1'b0;
+			ROM[182] <= 1'b0;
+			ROM[183] <= 1'b0;
+			ROM[184] <= 1'b0;
+			ROM[185] <= 1'b0;
+			ROM[186] <= 1'b0;
+			ROM[187] <= 1'b0;
+			ROM[188] <= 1'b0;
+			ROM[189] <= 1'b1;
+			ROM[190] <= 1'b1;
+			ROM[191] <= 1'b1;
+			ROM[192] <= 1'b1;
+			ROM[193] <= 1'b1;
+			ROM[194] <= 1'b1;
+			ROM[195] <= 1'b0;
+			ROM[196] <= 1'b0;
+			ROM[197] <= 1'b0;
+			ROM[198] <= 1'b0;
+			ROM[199] <= 1'b0;
+			ROM[200] <= 1'b1;
+			ROM[201] <= 1'b1;
+			ROM[202] <= 1'b1;
+			ROM[203] <= 1'b1;
+			ROM[204] <= 1'b1;
+			ROM[205] <= 1'b1;
+			ROM[206] <= 1'b1;
+			ROM[207] <= 1'b1;
+			ROM[208] <= 1'b1;
+			ROM[209] <= 1'b1;
+			ROM[210] <= 1'b1;
+			ROM[211] <= 1'b0;
+			ROM[212] <= 1'b0;
+			ROM[213] <= 1'b0;
+			ROM[214] <= 1'b0;
+			ROM[215] <= 1'b0;
+			ROM[216] <= 1'b0;
+			ROM[217] <= 1'b0;
+			ROM[218] <= 1'b0;
+			ROM[219] <= 1'b0;
 		end
 		else begin
-			if (cnt_a == 4'd7) begin
-				cnt_a <= 4'd0;
-				if (data_cnt == 8'd219)
-					data_cnt <= 8'd0;
+			if (enable) begin
+				if (cnt_a == 3'd7) begin
+					cnt_a <= 3'd0;
+					if (data_cnt < 8'd219)
+						data_cnt <= data_cnt + 1;
+				end
 				else
-					data_cnt <= data_cnt + 1;
+					cnt_a <= cnt_a + 1;
+				if (cnt_b == 3'd4) begin
+					cnt_b <= 3'd0;
+					div_clk <= ~div_clk;
+				end
+				else
+					cnt_b <= cnt_b + 1;
+				serial_data <= ROM[data_cnt];
 			end
-			else
-				cnt_a <= cnt_a + 1;
-			if (cnt_b == 4'd4) begin
-				cnt_b <= 4'd0;
-				div_clk <= ~div_clk;
-			end
-			else
-				cnt_b <= cnt_b + 1;
-			serial_data <= ROM[data_cnt];
 		end
 	end
 	

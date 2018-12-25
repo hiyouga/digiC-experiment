@@ -1,8 +1,9 @@
-module Sync_capturer(clk, in, strobe, data, rst);
+module Sync_capturer(clk, in, strobe, data, error, rst);
 	input clk;
 	input in;
 	output strobe;
 	output data;
+	output error;
 	input rst;
 	
 	wire raw_strobe;
@@ -12,7 +13,6 @@ module Sync_capturer(clk, in, strobe, data, rst);
 	reg [3:0] cnt;
 	reg [4:0] data_cnt;
 	reg presult;
-	reg DataError_Flag;
 	
 	parameter Wait_Sync = 2'b00;
 	parameter Low_Delay = 2'b01;
@@ -28,7 +28,6 @@ module Sync_capturer(clk, in, strobe, data, rst);
 			cnt <= 4'b0;
 			data_cnt <= 5'b0;
 			presult <= paritymode;
-			DataError_Flag <= 1'b0;
 		end
 		else begin
 			case (State)
@@ -78,10 +77,6 @@ module Sync_capturer(clk, in, strobe, data, rst);
 									end
 									if (strobe) begin
 										if (data_cnt == 5'd16) begin
-											if (data == presult)
-												DataError_Flag <= 1'b0;
-											else
-												DataError_Flag <= 1'b1;
 											State <= Wait_Sync;
 										end
 										else begin
@@ -96,6 +91,7 @@ module Sync_capturer(clk, in, strobe, data, rst);
 	
 	assign strobe = raw_strobe & State[0] & State[1];
 	assign data = raw_data & State[0] & State[1];
+	assign error = data ^ presult;
 	
 	MAN_decoder_RTL man_decoder_rtl (
 		.clk(clk),
