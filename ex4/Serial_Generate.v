@@ -244,14 +244,14 @@ module Serial_Generate(clk, enable, serial_data, div_clk, rst);
 		end
 		else begin
 			if (enable) begin
-				if (cnt_a == 3'd7) begin
+				if (cnt_a == 3'd7) begin // 8 sys clk
 					cnt_a <= 3'd0;
 					if (data_cnt < 8'd219)
 						data_cnt <= data_cnt + 1;
 				end
 				else
 					cnt_a <= cnt_a + 1;
-				if (cnt_b == 3'd4) begin
+				if (cnt_b == 3'd4) begin // 5 sys clk
 					cnt_b <= 3'd0;
 					div_clk <= ~div_clk;
 				end
