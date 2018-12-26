@@ -13,7 +13,6 @@ module Top(sys_clk, sys_rst, key, com, seg, led);
 	wire data;
 	wire error;
 	
-	reg enable;
 	reg prestrobe;
 	reg [2:0] State;
 	reg Data_Reg [0:15];
@@ -34,10 +33,9 @@ module Top(sys_clk, sys_rst, key, com, seg, led);
 	always @(posedge sys_clk or negedge sys_rst) begin
 		if (!sys_rst) begin
 			cnt <= 0;
-			enable <= 1'b0;
 			prestrobe <= 1'b0;
 			State <= 3'b0;
-			for (i = 0; i < 16; i=i+1)
+			for (i=0; i<16; i=i+1)
 				Data_Reg[i] <= 1'b0;
 			Data_Cnt <= 5'b0;
 			Print <= 1'b0;
@@ -46,12 +44,10 @@ module Top(sys_clk, sys_rst, key, com, seg, led);
 		else begin
 			case (State)
 				Ready:	begin
-								enable <= 1'b0;
 								if (key_out[0])
 									State <= Decoding;
 							end
 				Decoding:begin
-								enable <= 1'b1;
 								if (strobe != prestrobe) begin
 									prestrobe <= strobe;
 									if (strobe) begin // posedge
@@ -70,12 +66,10 @@ module Top(sys_clk, sys_rst, key, com, seg, led);
 								end
 							end
 				Waiting:	begin
-								enable <= 1'b1;
 								if (key_out[1])
 									State <= Printing;
 							end
 				Printing:begin
-								enable <= 1'b0;
 								if (cnt == interval) begin
 									cnt <= 0;
 									if (Print_Cnt == 5'd16) begin
@@ -96,7 +90,7 @@ module Top(sys_clk, sys_rst, key, com, seg, led);
 	
 	Serial_Generate serial_generate (
 		.clk(sys_clk),
-		.enable(enable),
+		.enable(~State[1] & State[0]),
 		.serial_data(serial_data),
 		.div_clk(div_clk),
 		.rst(sys_rst)

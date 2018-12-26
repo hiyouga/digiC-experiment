@@ -37,6 +37,10 @@ module Top_tb;
 		key[0] = 1;
 		#2000000;
 		key[0] = 0;
+		#2000000;
+		key[1] = 1;
+		#2000000;
+		key[1] = 0;
 	end
 	
 	always #1 sys_clk = ~sys_clk;
