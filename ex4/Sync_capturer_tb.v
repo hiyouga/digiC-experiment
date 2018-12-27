@@ -10,6 +10,7 @@ module Sync_capturer_tb;
 	// Outputs
 	wire strobe;
 	wire data;
+	wire error;
 
 	// Instantiate the Unit Under Test (UUT)
 	Sync_capturer uut (
@@ -17,6 +18,7 @@ module Sync_capturer_tb;
 		.in(in), 
 		.strobe(strobe), 
 		.data(data), 
+		.error(error), 
 		.rst(rst)
 	);
 
@@ -38,8 +40,8 @@ module Sync_capturer_tb;
 		in = 1;
 		#24;
 		in = 0;
-		#8; // Correct
-		//#16; // Wrong
+		//#8; // Correct
+		#16; // Wrong
 		in = 1;
 		#16;
 		in = 0;
